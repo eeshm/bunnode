@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 function readSimpleString(data, pos = 0) {
-  if (data.length == 0 || !data) return "no data";
+  if (!data || data.length == 0 ) return [null, pos];
 
   let start = pos + 1;
   pos = start;
@@ -28,54 +28,73 @@ function readInteger(data, pos = 0) {
   return [value, pos + 2];
 }
 
-function readError(data) {
-  return readSimpleString(data);
+function readError(data, pos = 0) {
+  let [msg, nextPos] = readSimpleString(data, pos);
+  return [new Error(msg), nextPos];
 }
 
-function readBulkString(data,pos =0){
-    if (!data || data.length == 0) return "no data";
-    let start = pos +1;
-    let [data, pos]= readLength(data,start);
+function readBulkString(data, pos = 0) {
+  if (!data || data.length == 0) return "no data";
+  let start = pos + 1;
+  let [length, i] = readLength(data, start);
 
+  if (length == -1) {
+    return [null, i];
+  }
 
+  let value = data.slice(i, i + length);
+
+  return [value, i + length + 2];
 }
 
+function readArray(data,pos = 0){
+    if (!data || data.length === 0) return "no data";
 
+    let start = pos + 1;
+    let [length,i]= readLength(data,start);
 
+    let result =[];
 
-
-function readLength (data,start){
-    let i = pos;
-    let length =0;
-    for(;i <data.length;i++){
-        if(data[i] == "\r") break;
-
-        length = length *10 + (data[i].charCodeAt(0) -48);
+    for(let j =0; j<length;j++){
+        let [value,nextPos] = DecodeOne(data,i);
+        result.push(value);
+        i = nextPos;
     }
+    return [result,i];
+}
+function readLength(data, start) {
+  let i = start;
+  let length = 0;
+  for (; i < data.length; i++) {
+    if (data[i] == "\r") break;
+    length = length * 10 + (data[i].charCodeAt(0) - 48);
+  }
+  return [length, i + 2];
 }
 
 function Decode(data) {
-  if (!data || data.value == null) return null;
+  if (!data || data.length == 0) return null;
 
-  let { val, err } = DecodeOne(data);
+  let [ val, pos ] = DecodeOne(data);
 
   return val;
 }
 
-function DecodeOne(data) {
-  if (data.length == 0) return "No Data";
+function DecodeOne(data,pos = 0) {
+  if (!data || data.length == 0) return "No Data";
 
-  switch (data[0]) {
+  switch (data[pos]) {
     case "+":
-      return readSimpleString(data);
+      return readSimpleString(data,pos);
     case ":":
-      return readInteger(data);
+      return readInteger(data,pos);
     case "-":
-      return readError(data);
+      return readError(data,pos);
     case "$":
-      return readBulkString(data);
+      return readBulkString(data,pos);
     case "*":
-      return readableStreamToArray(data);
+      return readArray(data,pos);
+    default:
+      throw new Error("unknown resp type");
   }
-  return null || 0;
 }
