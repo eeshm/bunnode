@@ -22,8 +22,18 @@ function readCommand(data:string) :Cmd | null{
     }
 }
 
+function respondError(){
+    return "-ERR error in response\r\n"
+}
+function respond(cmd :any){
+    const answer =  evalAndRespone(cmd);
+    if(!answer){
+        return respondError();
+    }
+    return answer;
 
-const server = net.createServer((socket)=>{
+}
+export const server = net.createServer((socket)=>{
     console.log("client connected");
     
     let buffer ="";
@@ -33,7 +43,7 @@ const server = net.createServer((socket)=>{
         try{
             const cmd = readCommand(buffer);
             if(!cmd) return;
-            const response = evalAndRespone(cmd);
+            const response = respond(cmd);
             socket.write(response);
 
             const [_,nextPos] = DecodeOne(buffer,0);
@@ -50,8 +60,5 @@ const server = net.createServer((socket)=>{
 
     socket.on("error",(err)=>{
         console.log("socket error", err.message)
-    })
-    server.listen(7379, ()=>{
-        console.log("Redis clone is running on 7379")
     })
 })
