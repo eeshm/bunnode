@@ -23,11 +23,27 @@ function evalPing(cmd: Cmd) {
   }
 }
 
+function evalCommand() {
+  // Minimal compatibility for redis-cli ready check.
+  return "*0\r\n";
+}
+
+function evalInfo() {
+  // Minimal INFO payload so redis-cli can complete readiness checks.
+  return "$0\r\n\r\n";
+}
+
 export function evalAndRespone(cmd: Cmd): string {
   switch (cmd.cmd) {
     case "PING":
       return evalPing(cmd);
+    case "QUIT":
+      return "+OK\r\n";
+    case "INFO":
+      return evalInfo();
+    case "COMMAND":
+      return evalCommand();
     default:
-      return "-ERR unkown command\r\n";
+      return "-ERR unknown command\r\n";
   }
 }

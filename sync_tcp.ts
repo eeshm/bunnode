@@ -45,6 +45,10 @@ export const server = net.createServer((socket)=>{
             if(!cmd) return;
             const response = respond(cmd);
             socket.write(response);
+            if (cmd.cmd === "QUIT") {
+                socket.end();
+                return;
+            }
 
             const [_,nextPos] = DecodeOne(buffer,0);
             buffer = buffer.slice(nextPos);

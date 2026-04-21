@@ -12,16 +12,6 @@ import { startWsServer } from "./ws/wsserver";
 
 
 const port = Number(process.env.PORT ?? 3000);
-const databaseUrl = process.env.DATABASE_URL;
-const redisUrl = process.env.REDIS_URL;
-
-if (!databaseUrl) {
-	throw new Error("Missing DATABASE_URL in environment variables.");
-}
-
-if (!redisUrl) {
-	throw new Error("Missing REDIS_URL in environment variables.");
-}
 
 const app = express();
 
@@ -36,7 +26,7 @@ app.get("/health", async (_req, res) => {
 
 async function startServer() {
 	server.listen(port, () => {
-		console.log(`Server running at http://localhost:${port}`);
+		console.log(`Redis clone is running on port ${port}`);
 	});
 	// app.listen(port, () => {
 	// 	console.log(`Server running at http://localhost:${port}`);
