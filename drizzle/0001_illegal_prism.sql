@@ -1,0 +1,1 @@
+CREATE INDEX "idx_testing_name" ON "testing" USING btree ("name");
