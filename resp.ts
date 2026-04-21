@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 function readSimpleString(data, pos = 0) {
-  if (!data || data.length == 0 ) return [null, pos];
+  if (!data || data.length == 0) return [null, pos];
 
   let start = pos + 1;
   pos = start;
@@ -47,22 +47,23 @@ function readBulkString(data, pos = 0) {
   return [value, i + length + 2];
 }
 
-function readArray(data,pos = 0){
-    if (!data || data.length === 0) return "no data";
+function readArray(data, pos = 0) {
+  if (!data || data.length === 0) return "no data";
 
-    let start = pos + 1;
-    let [length,i]= readLength(data,start);
+  let start = pos + 1;
+  let [length, i] = readLength(data, start);
 
-    let result =[];
+  let result = [];
 
-    for(let j =0; j<length;j++){
-        let [value,nextPos] = DecodeOne(data,i);
-        result.push(value);
-        i = nextPos;
-    }
-    return [result,i];
+  for (let j = 0; j < length; j++) {
+    let [value, nextPos] = DecodeOne(data, i);
+    result.push(value);
+    i = nextPos;
+  }
+  return [result, i];
 }
-function readLength(data, start) {
+
+export function readLength(data, start) {
   let i = start;
   let length = 0;
   for (; i < data.length; i++) {
@@ -72,28 +73,28 @@ function readLength(data, start) {
   return [length, i + 2];
 }
 
-function Decode(data) {
+export function Decode(data) {
   if (!data || data.length == 0) return null;
 
-  let [ val, pos ] = DecodeOne(data);
+  let [val, pos] = DecodeOne(data);
 
   return val;
 }
 
-function DecodeOne(data,pos = 0) {
+export function DecodeOne(data, pos = 0) {
   if (!data || data.length == 0) return "No Data";
 
   switch (data[pos]) {
     case "+":
-      return readSimpleString(data,pos);
+      return readSimpleString(data, pos);
     case ":":
-      return readInteger(data,pos);
+      return readInteger(data, pos);
     case "-":
-      return readError(data,pos);
+      return readError(data, pos);
     case "$":
-      return readBulkString(data,pos);
+      return readBulkString(data, pos);
     case "*":
-      return readArray(data,pos);
+      return readArray(data, pos);
     default:
       throw new Error("unknown resp type");
   }

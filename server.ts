@@ -25,7 +25,3 @@ const server = net.createServer((socket) => {
 });
 
 export default server;
-
-function test(){
-    decodeURI
-}
