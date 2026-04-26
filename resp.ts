@@ -70,7 +70,7 @@ export function readLength(data, start) {
     if (data[i] == "\r") break;
     length = length * 10 + (data[i].charCodeAt(0) - 48);
   }
-  return [length, i + 2];
+  return [length, i + 2]; //skip /r/n
 }
 
 export function Decode(data) {
