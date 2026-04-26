@@ -25,8 +25,8 @@ app.get("/health", async (_req, res) => {
 });
 
 async function startServer() {
-	server.listen(port, () => {
-		console.log(`Redis clone is running on port ${port}`);
+	server.listen(port, "0.0.0.0", () => {
+		console.log(`Redis clone is running on 0.0.0.0:${port}`);
 	});
 	// app.listen(port, () => {
 	// 	console.log(`Server running at http://localhost:${port}`);
