@@ -1,4 +1,6 @@
 // @ts-nocheck
+//RESP protocol
+
 
 function readSimpleString(data, pos = 0) {
   if (!data || data.length == 0) return [null, pos];

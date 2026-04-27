@@ -3,7 +3,7 @@ type Cmd = {
   args: string[];
 };
 
-let map = new Map();
+let map = new Map<string, string>();
 
 function encode(value: any, simple: boolean = true) {
   if (typeof value == "string") {
@@ -16,35 +16,32 @@ function encode(value: any, simple: boolean = true) {
 }
 
 function evalPing(cmd: Cmd) {
-  if (cmd.args.length >= 2) {
+  if (cmd.args.length > 1) {
     return "-ERR wrong number of arguments for 'PING'\r\n";
-  } else if (cmd.args.length == 0) {
-    return encode("PONG", true);
-  } else {
-    return encode(cmd.args[0], false);
   }
-}
-function set(data: any) {
-  try {
-    map.set(data[0], data[1]);
-    return true;
-  } catch (err) {
-    return false;
+
+  if (cmd.args.length === 0) {
+    return "+PONG\r\n";
   }
+
+  return encode(cmd.args[0], false);
 }
 
 function evalSet(cmd: Cmd) {
-  if (cmd.args.length > 2) {
-    return "-ERR syntax error\r\n";
-  } else if (cmd.args.length < 2) {
+  if (cmd.args.length !== 2) {
     return "-ERR wrong number of arguments for 'set' command\r\n";
-  } else {
-    const result = set(cmd.args);
-    if (!result) {
-      return "-ERR unkwone error\r\n";
-    }
-    return encode("OK", true);
   }
+  let exDurationMs = -1;
+
+  let key = cmd.args[0];
+  let value = cmd.args[1];
+  for (let i = 2; i < cmd.args.length; i++) {
+    switch (cmd.args[i]) {
+      case "Ex","ex" :
+        return "hi"
+    }
+  }
+  return "+OK\r\n";
 }
 
 function get(data: any) {
@@ -59,15 +56,17 @@ function get(data: any) {
 function evalGet(cmd: Cmd) {
   if (cmd.args.length !== 1) {
     return "-ERR wrong number of arguments for 'get' command\r\n";
-  } else {
-    const result = get(cmd.args);
-    if (!result) {
-      return encode("(nil)", true);
-    } else {
-      return encode(result, true);
-    }
   }
+  const result = map.get(cmd.args[0]!);
+
+  if (result === undefined) {
+    return "$-1\r\n";
+  }
+
+  return encode(result, false);
 }
+
+function evalTTl(cmd: Cmd) {}
 
 function evalCommand() {
   // Minimal compatibility for redis-cli ready check.
@@ -87,6 +86,8 @@ export function evalAndRespone(cmd: Cmd): string {
       return evalGet(cmd);
     case "PING":
       return evalPing(cmd);
+    case "TTL":
+      return evalTTl(cmd);
     case "QUIT":
       return "+OK\r\n";
     case "INFO":
