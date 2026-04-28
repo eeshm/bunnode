@@ -1,4 +1,4 @@
-import { store } from "./store";
+import { store } from "./Store";
 
 type Cmd = {
   cmd: string;
@@ -44,7 +44,7 @@ function evalSet(cmd: Cmd) {
     return err("wrong number of arguments for 'set' command");
   }
   const key = cmd.args[0];
-  const value = cmd.args[1];
+  const value = cmd.args[1]!;
 
   let expiresAt: number | undefined;
 
@@ -81,7 +81,7 @@ function evalGet(cmd: Cmd) {
   const obj = store.get(key!);
 
   if (!obj) {
-    return evalNil;
+    return evalNil();
   }
 
   // lazy expiration
@@ -138,7 +138,7 @@ export function evalAndRespone(cmd: Cmd): string {
     case "PING":
       return evalPing(cmd);
     case "TTL":
-      return evalTTl(cmd);
+      return evalTTL(cmd);
     case "QUIT":
       return "+OK\r\n";
     case "INFO":
