@@ -73,6 +73,7 @@ function evalSet(cmd: Cmd) {
   return encode("OK");
 }
 
+
 function evalGet(cmd: Cmd) {
   if (cmd.args.length !== 1) {
     return err("wrong number of arguments for 'get' command");
@@ -83,12 +84,6 @@ function evalGet(cmd: Cmd) {
 
   const obj = store.get(key);
   if (!obj) {
-    return integer(0);
-  }
-
-  // lazy expiration
-  if (obj.expiresAt !== undefined && Date.now() >= obj.expiresAt) {
-    store.delete(key!);
     return evalNil();
   }
 
@@ -115,12 +110,7 @@ function evalTTL(cmd: Cmd): string {
 
   const ttl = Math.ceil((obj.expiresAt - Date.now()) / 1000);
 
-  if (ttl <= 0) {
-    store.delete(key!);
-    return integer(-2);
-  }
-
-  return integer(ttl);
+  return integer(ttl > 0 ? ttl : -2);
 }
 
 function evalDel(cmd: Cmd) {
@@ -146,12 +136,6 @@ function evalExpire(cmd: Cmd) {
   const obj = store.get(key!);
 
   if (!obj) {
-    return integer(0);
-  }
-
-  // If already expired, treat as non-existing (important!)
-  if (obj.expiresAt !== undefined && Date.now() >= obj.expiresAt) {
-    store.delete(key!);
     return integer(0);
   }
 

@@ -1,7 +1,7 @@
 import { DecodeOne } from "./resp";
 import net from "net";
 import { evalAndRespone } from "./eval";
-import { createServer } from "http";
+import { store } from "./Store";
 
 export type Cmd = {
   cmd: string;
@@ -12,6 +12,12 @@ type ParsedCmd = {
   cmd: Cmd;
   nextPos: number;
 };
+
+
+// implementing active deleteion of expired keys is optional, we can do it in get and ttl command
+
+let cronFrequency = 1 * 60 * 1000; // 1 minute
+let lastCronRun = Date.now();
 
 function readCommand(data: string): ParsedCmd | null {
   if (!data || data.length == 0) {
