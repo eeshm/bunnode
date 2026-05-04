@@ -15,7 +15,7 @@ class Storage {
   }
 
   delete(key: string) {
-    this.data.delete(key);
+    return this.data.delete(key);
   }
 }
 

@@ -92,6 +92,7 @@ function evalGet(cmd: Cmd) {
 
   return encode(obj.value, false);
 }
+
 function evalTTL(cmd: Cmd): string {
   if (cmd.args.length !== 1) {
     return err("wrong number of arguments for 'ttl' command");
@@ -119,6 +120,20 @@ function evalTTL(cmd: Cmd): string {
 
   return integer(ttl);
 }
+
+function evalDel(cmd: Cmd) {
+  if (cmd.args.length == 0) return err("unkown number of arguements");
+  let countDelete = 0;
+
+  for (let i = 0; i < cmd.args.length; i++) {
+    const key = cmd.args[i];
+    if(key !== null && store.delete(key!)) {
+      countDelete++;
+    }
+  }
+  return integer(countDelete);
+}
+
 function evalCommand() {
   // Minimal compatibility for redis-cli ready check.
   return "*0\r\n";
@@ -139,6 +154,10 @@ export function evalAndRespone(cmd: Cmd): string {
       return evalPing(cmd);
     case "TTL":
       return evalTTL(cmd);
+    case "DEL":
+      return evalDel(cmd);
+    case "EXPIRE":
+      return evalExpire(cmd);
     case "QUIT":
       return "+OK\r\n";
     case "INFO":
@@ -146,6 +165,16 @@ export function evalAndRespone(cmd: Cmd): string {
     case "COMMAND":
       return evalCommand();
     default:
-      return "-ERR unknown command\r\n";
+      return err("unknown commands");
   }
 }
+
+// Del -
+// Del K -- return 1 if present
+// Again  Del k -- return 0 if nothign exist
+// Del k1 k2 k3 k4 - reutnr 2 if only two keys exist
+
+// Expire
+// Expire K 10 --> 1
+// Expire Ad -- > unknown arguemtns
+// Expire k 34 --> (if k key not present) - return 0
