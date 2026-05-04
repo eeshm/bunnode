@@ -139,12 +139,15 @@ function evalExpire(cmd: Cmd) {
     return integer(0);
   }
 
-  // Implementation for setting expiration would go here
+  // Implementation for setting expiration
   const seconds = Number(cmd.args[1]);
   if (!Number.isInteger(seconds) || seconds < 0) {
     return err("invalid expire time in expire");
   }
   obj.expiresAt = Date.now() + seconds * 1000;
+  
+  // Re-put to trigger expiration tracking in the Store
+  store.put(key!, obj);
 
   return integer(1);
 }
