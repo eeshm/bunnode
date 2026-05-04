@@ -1,3 +1,4 @@
+import { numeric } from "drizzle-orm/pg-core";
 import { store } from "./Store";
 
 type Cmd = {
@@ -78,10 +79,11 @@ function evalGet(cmd: Cmd) {
   }
 
   const key = cmd.args[0];
-  const obj = store.get(key!);
+  if (key == null) return integer(0);
 
+  const obj = store.get(key);
   if (!obj) {
-    return evalNil();
+    return integer(0);
   }
 
   // lazy expiration
@@ -122,16 +124,45 @@ function evalTTL(cmd: Cmd): string {
 }
 
 function evalDel(cmd: Cmd) {
-  if (cmd.args.length == 0) return err("unkown number of arguements");
+  if (cmd.args.length == 0)
+    return err("unknown number of arguments for 'del' command");
   let countDelete = 0;
 
   for (let i = 0; i < cmd.args.length; i++) {
     const key = cmd.args[i];
-    if(key !== null && store.delete(key!)) {
+    if (key !== null && store.delete(key!)) {
       countDelete++;
     }
   }
   return integer(countDelete);
+}
+
+function evalExpire(cmd: Cmd) {
+  if (cmd.args.length !== 2) {
+    return err("wrong number of arguments for 'expire' command");
+  }
+
+  const key = cmd.args[0];
+  const obj = store.get(key!);
+
+  if (!obj) {
+    return integer(0);
+  }
+
+  // If already expired, treat as non-existing (important!)
+  if (obj.expiresAt !== undefined && Date.now() >= obj.expiresAt) {
+    store.delete(key!);
+    return integer(0);
+  }
+
+  // Implementation for setting expiration would go here
+  const seconds = Number(cmd.args[1]);
+  if (!Number.isInteger(seconds) || seconds < 0) {
+    return err("invalid expire time in expire");
+  }
+  obj.expiresAt = Date.now() + seconds * 1000;
+
+  return integer(1);
 }
 
 function evalCommand() {
