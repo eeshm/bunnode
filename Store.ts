@@ -2,6 +2,7 @@ export type StoreItem = {
   value: string;
   expiresAt?: number;
 };
+import { Key_Limit } from "./constants";
 
 class Storage {
   private data = new Map<string, StoreItem>();
@@ -9,6 +10,11 @@ class Storage {
 
   put(key: string, item: StoreItem) {
     this.data.set(key, item);
+    if(this.data.size >= Key_Limit) {
+      this.evict();
+    }
+    console.log(`Put key: ${key}, total keys: ${this.data.size}`);
+      
     if (item.expiresAt !== undefined) {
       this.expires.add(key);
     } else {
@@ -48,6 +54,13 @@ class Storage {
         if (sampled.length === keys.length) break;
     }
     return sampled;
+  }
+
+  evict() {
+    // evict first key (for simplicity, can be improved with LRU or other strategies)
+    const firstKey = this.data.keys().next().value;
+    this.data.delete(firstKey!);
+    this.expires.delete(firstKey!);
   }
 }
 
