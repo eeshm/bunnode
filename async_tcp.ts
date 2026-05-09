@@ -12,7 +12,8 @@ export type Cmd = {
 type ParsedCmd = {
   cmd: Cmd;
   nextPos: number;
-}; 
+};
+type RedisCmds = Cmd[];
 
 // Start the background active expiration job
 startActiveExpiration();
@@ -82,10 +83,12 @@ export const server = net.createServer((socket) => {
 
     while (buffer.length > 0) {
       try {
+        // Convert from RESP to cmd object(parsed) then eval and get the response string (in RESP format) then write back to socket
         const parsed = readCommand(buffer);
         if (!parsed) return;
 
         const cmd = parsed.cmd;
+
         const response = respond(cmd);
         socket.write(response);
         if (cmd.cmd === "QUIT") {
