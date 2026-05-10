@@ -36,12 +36,16 @@ function readError(data, pos = 0) {
 }
 
 function readBulkString(data, pos = 0) {
-  if (!data || data.length == 0) return "no data";
+  if (!data || data.length == 0) throw new Error("no data");
   let start = pos + 1;
   let [length, i] = readLength(data, start);
 
   if (length == -1) {
     return [null, i];
+  }
+
+  if (i + length + 2 > data.length) {
+    throw new Error("Incomplete bulk string");
   }
 
   let value = data.slice(i, i + length);
@@ -68,19 +72,39 @@ function readArray(data, pos = 0) {
 export function readLength(data, start) {
   let i = start;
   let length = 0;
+  let found = false;
   for (; i < data.length; i++) {
-    if (data[i] == "\r") break;
+    if (data[i] == "\r") {
+      found = true;
+      break;
+    }
     length = length * 10 + (data[i].charCodeAt(0) - 48);
+  }
+  
+  if (!found || i + 1 >= data.length || data[i+1] !== "\n") {
+    throw new Error("Incomplete length");
   }
   return [length, i + 2]; //skip /r/n
 }
 
 export function Decode(data) {
-  if (!data || data.length == 0) return null;
+  if (!data || data.length == 0) return [[], 0];
 
-  let [val, pos] = DecodeOne(data);
+  let values = [];
+  let pos = 0;
 
-  return val;
+  while (pos < data.length) {
+    try {
+      let [val, nextPos] = DecodeOne(data, pos);
+      values.push(val);
+      pos = nextPos;
+    } catch {
+      // Incomplete RESP frame; wait for more bytes.
+      break;
+    }
+  }
+
+  return [values, pos];
 }
 
 export function DecodeOne(data, pos = 0) {

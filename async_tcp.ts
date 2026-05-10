@@ -1,4 +1,4 @@
-import { DecodeOne } from "./resp";
+import { Decode } from "./resp";
 import net from "net";
 import { evalAndRespone } from "./eval";
 import { store } from "./Store";
@@ -9,21 +9,20 @@ export type Cmd = {
   args: string[];
 };
 
-type ParsedCmd = {
-  cmd: Cmd;
+type ParsedCmds = {
+  cmds: Cmd[];
   nextPos: number;
 };
-type RedisCmds = Cmd[];
 
 // Start the background active expiration job
 startActiveExpiration();
 
-function readCommand(data: string): ParsedCmd | null {
-  if (!data || data.length == 0) {
+function readCommands(data: string): ParsedCmds | null {
+  if (!data || data.length === 0) {
     return null;
   }
 
-  // Support inline Redis protocol: "PING\r\n" or "PING hello\r\n"
+  // Support inline Redis protocol (fallback for simple raw commands): "PING\r\n"
   if (data[0] !== "*") {
     const lineEnd = data.indexOf("\r\n");
     if (lineEnd === -1) return null;
@@ -34,31 +33,33 @@ function readCommand(data: string): ParsedCmd | null {
     const baseCmd = parts[0];
     if (!baseCmd) return null;
     return {
-      cmd: {
+      cmds: [{
         cmd: baseCmd.toUpperCase(),
         args: parts.slice(1),
-      },
+      }],
       nextPos: lineEnd + 2,
     };
   }
 
-  let value: any;
-  let nextPos: number;
-  try {
-    [value, nextPos] = DecodeOne(data, 0);
-  } catch {
-    // Incomplete RESP frame; wait for more bytes.
-    return null;
+  // Use the pipelined Decode function to get all pipelined commands
+  const [values, nextPos] = Decode(data);
+  if (!values || values.length === 0) {
+    return null; // incomplete
   }
 
-  if (!Array.isArray(value)) return null;
+  const cmds: Cmd[] = [];
+  for (const value of values) {
+    if (!Array.isArray(value)) continue;
 
-  return {
-    cmd: {
+    cmds.push({
       cmd: value[0].toUpperCase(),
       args: value.slice(1),
-    },
-    nextPos,
+    });
+  }
+
+  return {
+    cmds,
+    nextPos
   };
 }
 
@@ -66,10 +67,10 @@ function respondError() {
   return "-ERR error in response\r\n";
 }
 
-function respond(cmd: any) {
-  const answer = evalAndRespone(cmd);
+function respond(cmds: Cmd[]) {
+  const answer = evalAndRespone(cmds);
   if (!answer) {
-    return respondError();
+    return respondError(); // (fallback)
   }
   return answer;
 }
@@ -83,15 +84,13 @@ export const server = net.createServer((socket) => {
 
     while (buffer.length > 0) {
       try {
-        // Convert from RESP to cmd object(parsed) then eval and get the response string (in RESP format) then write back to socket
-        const parsed = readCommand(buffer);
+        const parsed = readCommands(buffer);
         if (!parsed) return;
 
-        const cmd = parsed.cmd;
-
-        const response = respond(cmd);
+        const response = respond(parsed.cmds);
         socket.write(response);
-        if (cmd.cmd === "QUIT") {
+        
+        if (parsed.cmds.some(c => c.cmd === "QUIT")) {
           socket.end();
           return;
         }

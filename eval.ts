@@ -162,29 +162,42 @@ function evalInfo() {
   return "$0\r\n\r\n";
 }
 
-export function evalAndRespone(cmd: Cmd): string {
-  switch (cmd.cmd) {
-    case "SET":
-      return evalSet(cmd);
-    case "GET":
-      return evalGet(cmd);
-    case "PING":
-      return evalPing(cmd);
-    case "TTL":
-      return evalTTL(cmd);
-    case "DEL":
-      return evalDel(cmd);
-    case "EXPIRE":
-      return evalExpire(cmd);
-    case "QUIT":
-      return "+OK\r\n";
-    case "INFO":
-      return evalInfo();
-    case "COMMAND":
-      return evalCommand();
-    default:
-      return err("unknown commands");
+export function evalAndRespone(cmds: Cmd[]): string {
+  let response = "";
+  for (const cmd of cmds) {
+    switch (cmd.cmd) {
+      case "SET":
+        response += evalSet(cmd);
+        break;
+      case "GET":
+        response += evalGet(cmd);
+        break;
+      case "PING":
+        response += evalPing(cmd);
+        break;
+      case "TTL":
+        response += evalTTL(cmd);
+        break;
+      case "DEL":
+        response += evalDel(cmd);
+        break;
+      case "EXPIRE":
+        response += evalExpire(cmd);
+        break;
+      case "QUIT":
+        response += "+OK\r\n";
+        break;
+      case "INFO":
+        response += evalInfo();
+        break;
+      case "COMMAND":
+        response += evalCommand();
+        break;
+      default:
+        response += err("unknown commands");
+    }
   }
+  return response;
 }
 
 // Del -
