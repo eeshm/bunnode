@@ -42,7 +42,7 @@ function readCommands(data: string): ParsedCmds | null {
   }
 
   // Use the pipelined Decode function to get all pipelined commands
-  const [values, nextPos] = Decode(data);
+  const [values, nextPos] = Decode(data) as [any[], number];
   if (!values || values.length === 0) {
     return null; // incomplete
   }
