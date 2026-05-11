@@ -1,5 +1,7 @@
 import { numeric } from "drizzle-orm/pg-core";
 import { store } from "./Store";
+import {DUMPALLAOF} from "./aof";
+
 
 type Cmd = {
   cmd: string;
@@ -18,14 +20,28 @@ function err(msg: string): string {
   return `-ERR ${msg}\r\n`;
 }
 
-function encode(value: any, simple: boolean = true) {
-  if (typeof value == "string") {
-    return simple ? `+${value}\r\n` : `$${value.length}\r\n${value}\r\n`;
+export function encode(value: any, simple: boolean = true): string {
+  if (value === null) {
+    return evalNil();
   }
 
-  if (value === null) return evalNil();
+  if (Array.isArray(value)) {
+    let res = `*${value.length}\r\n`;
+    for (const item of value) {
+      const strArg = String(item);
+      res += `$${strArg.length}\r\n${strArg}\r\n`;
+    }
+    return res;
+  }
 
-  return `:${value}\r\n`;
+  switch (typeof value) {
+    case "string":
+      return simple ? `+${value}\r\n` : `$${value.length}\r\n${value}\r\n`;
+    case "number":
+      return `:${value}\r\n`;
+    default:
+      return evalNil();
+  }
 }
 
 function evalPing(cmd: Cmd) {
@@ -152,6 +168,12 @@ function evalExpire(cmd: Cmd) {
   return integer(1);
 }
 
+// TODO: Make it async by forking a new process/thread
+function evalBGREWRITEAOF() {
+  DUMPALLAOF();
+  return encode("OK");
+}
+
 function evalCommand() {
   // Minimal compatibility for redis-cli ready check.
   return "*0\r\n";
@@ -192,6 +214,9 @@ export function evalAndRespone(cmds: Cmd[]): string {
         break;
       case "COMMAND":
         response += evalCommand();
+        break;
+      case "BGREWRITEAOF":
+        response += evalBGREWRITEAOF();
         break;
       default:
         response += err("unknown commands");

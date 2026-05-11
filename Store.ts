@@ -59,8 +59,15 @@ class Storage {
   evict() {
     // evict first key (for simplicity, can be improved with LRU or other strategies)
     const firstKey = this.data.keys().next().value;
-    this.data.delete(firstKey!);
-    this.expires.delete(firstKey!);
+    if (firstKey) {
+      this.data.delete(firstKey);
+      this.expires.delete(firstKey);
+    }
+  }
+
+  // Allow iterating over the underlying map
+  entries() {
+    return this.data.entries();
   }
 }
 
