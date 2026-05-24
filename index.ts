@@ -4,9 +4,9 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { eq, sql } from "drizzle-orm";
 import { Pool } from "pg";
 import { createClient } from "redis";
-import { testing } from "../src/db/schema";
-import { server } from "./async_tcp";
-import { startWsServer } from "../ws/wsserver";
+import { testing } from "./src/db/schema";
+import { server } from "./redis/async_tcp";
+import { startWsServer } from "./ws/wsserver";
 
 
 
@@ -27,10 +27,6 @@ async function startServer() {
 	server.listen(port, "0.0.0.0", () => {
 		console.log(`Redis clone is running on 0.0.0.0:${port}`);
 	});
-	// app.listen(port, () => {
-	// 	console.log(`Server running at http://localhost:${port}`);
-	// });
-	// startWsServer();
 }
 
 startServer().catch(async (error) => {
