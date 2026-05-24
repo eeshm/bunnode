@@ -1,6 +1,8 @@
 import { numeric } from "drizzle-orm/pg-core";
 import { store } from "./Store";
-import {DUMPALLAOF} from "./aof";
+import { DUMPALLAOF } from "./aof";
+import { type Obj, OBJ_ENCODING_INT } from "./object";
+import { deduceType } from "./typeHelper";
 
 
 type Cmd = {
@@ -82,9 +84,14 @@ function evalSet(cmd: Cmd) {
         return err("syntax error");
     }
   }
+  let parsedValue: string | number = value;
+  const encoding = deduceType(value);
+  if (encoding === OBJ_ENCODING_INT) parsedValue = parseInt(value, 10);
+
   store.put(key!, {
-    value,
-    expiresAt,
+    typeEncoding: encoding,
+    value: parsedValue,
+    expiresAt
   });
   return encode("OK");
 }
@@ -103,7 +110,7 @@ function evalGet(cmd: Cmd) {
     return evalNil();
   }
 
-  return encode(obj.value, false);
+  return encode(String(obj.value), false);
 }
 
 function evalTTL(cmd: Cmd): string {
@@ -168,6 +175,42 @@ function evalExpire(cmd: Cmd) {
   return integer(1);
 }
 
+function evalIncr(cmd: Cmd) {
+  if (cmd.args.length !== 1) {
+    return err("wrong number of arguments for 'incr' command");
+  }
+
+  const key = cmd.args[0]!;
+  let obj = store.get(key);
+
+  if (!obj) {
+    obj = {
+      typeEncoding: OBJ_ENCODING_INT,
+      value: 0
+    };
+  } else {
+    // If it exists, but the type indicates it's encoded as an integer, 
+    // or if it can be parsed as an integer, we update it.
+    if (obj.typeEncoding !== OBJ_ENCODING_INT && typeof obj.value === 'string') {
+      const parsed = parseInt(obj.value, 10);
+      if (isNaN(parsed) || parsed.toString() !== obj.value) {
+        return err("ERR value is not an integer or out of range");
+      }
+      obj.value = parsed;
+      obj.typeEncoding = OBJ_ENCODING_INT;
+    } else if (typeof obj.value !== 'number') {
+      return err("ERR value is not an integer or out of range");
+    }
+  }
+
+  const newValue = (obj.value as number) + 1;
+  obj.value = newValue;
+  
+  store.put(key, obj);
+
+  return integer(newValue);
+}
+
 // TODO: Make it async by forking a new process/thread
 function evalBGREWRITEAOF() {
   DUMPALLAOF();
@@ -193,6 +236,9 @@ export function evalAndRespone(cmds: Cmd[]): string {
         break;
       case "GET":
         response += evalGet(cmd);
+        break;
+      case "INCR":
+        response += evalIncr(cmd);
         break;
       case "PING":
         response += evalPing(cmd);

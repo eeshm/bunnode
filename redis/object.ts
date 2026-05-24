@@ -1,14 +1,12 @@
+export const OBJ_ENCODING_RAW = 0;
+export const OBJ_ENCODING_INT = 1;
+export const OBJ_ENCODING_EMBSTR = 2;
+
 export type Obj = {
-    typeEncoding? : Uint8Array;
-    value: string;
+    typeEncoding: number; // 0 for raw, 1 for int, 2 for embstr
+    value: string | number;
     expiresAt?: number;
 };
-
-const OBJ_TYPE_STRING = 0 << 4;
-
-const OBJ_ENCODING_RAW = 0;
-const OBJ_ENCODING_INT = 1;
-const OBJ_ENCODING_EMBSTR = 2;
 
 
 

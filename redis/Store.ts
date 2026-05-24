@@ -2,6 +2,7 @@
 import { Key_Limit } from "./constants";
 import { type Obj } from "./object";
 
+
 class Storage {
   private data = new Map<string, Obj>();
   private expires = new Set<string>();
