@@ -1,3 +1,5 @@
+export const OBJ_STRING = 0;
+
 export const OBJ_ENCODING_RAW = 0;
 export const OBJ_ENCODING_INT = 1;
 export const OBJ_ENCODING_EMBSTR = 2;

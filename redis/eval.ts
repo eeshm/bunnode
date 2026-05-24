@@ -1,8 +1,9 @@
 import { numeric } from "drizzle-orm/pg-core";
 import { store } from "./Store";
 import { DUMPALLAOF } from "./aof";
-import { type Obj, OBJ_ENCODING_INT } from "./object";
+import { type Obj, OBJ_STRING, OBJ_ENCODING_INT } from "./object";
 import { deduceType } from "./typeHelper";
+import { assertType, assertEncoding } from "./typeencoding";
 
 
 type Cmd = {
@@ -86,7 +87,12 @@ function evalSet(cmd: Cmd) {
   }
   let parsedValue: string | number = value;
   const encoding = deduceType(value);
-  if (encoding === OBJ_ENCODING_INT) parsedValue = parseInt(value, 10);
+  
+  // Try checking if encoding matches INT without type flag
+  try {
+    assertEncoding(encoding, OBJ_ENCODING_INT);
+    parsedValue = parseInt(value, 10);
+  } catch {}
 
   store.put(key!, {
     typeEncoding: encoding,
@@ -185,21 +191,29 @@ function evalIncr(cmd: Cmd) {
 
   if (!obj) {
     obj = {
-      typeEncoding: OBJ_ENCODING_INT,
+      typeEncoding: (OBJ_STRING << 4) | OBJ_ENCODING_INT,
       value: 0
     };
   } else {
-    // If it exists, but the type indicates it's encoded as an integer, 
-    // or if it can be parsed as an integer, we update it.
-    if (obj.typeEncoding !== OBJ_ENCODING_INT && typeof obj.value === 'string') {
-      const parsed = parseInt(obj.value, 10);
-      if (isNaN(parsed) || parsed.toString() !== obj.value) {
+    try {
+      assertType(obj.typeEncoding, OBJ_STRING << 4);
+    } catch {
+      return err("WRONGTYPE Operation against a key holding the wrong kind of value");
+    }
+
+    try {
+      assertEncoding(obj.typeEncoding, OBJ_ENCODING_INT);
+    } catch {
+      if (typeof obj.value === 'string') {
+        const parsed = parseInt(obj.value, 10);
+        if (isNaN(parsed) || parsed.toString() !== obj.value) {
+          return err("ERR value is not an integer or out of range");
+        }
+        obj.value = parsed;
+        obj.typeEncoding = (OBJ_STRING << 4) | OBJ_ENCODING_INT;
+      } else {
         return err("ERR value is not an integer or out of range");
       }
-      obj.value = parsed;
-      obj.typeEncoding = OBJ_ENCODING_INT;
-    } else if (typeof obj.value !== 'number') {
-      return err("ERR value is not an integer or out of range");
     }
   }
 
