@@ -4,9 +4,9 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { eq, sql } from "drizzle-orm";
 import { Pool } from "pg";
 import { createClient } from "redis";
-import { testing } from "./src/db/schema";
+import { testing } from "../src/db/schema";
 import { server } from "./async_tcp";
-import { startWsServer } from "./ws/wsserver";
+import { startWsServer } from "../ws/wsserver";
 
 
 

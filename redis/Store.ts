@@ -1,14 +1,12 @@
-export type StoreItem = {
-  value: string;
-  expiresAt?: number;
-};
+
 import { Key_Limit } from "./constants";
+import { type Obj } from "./object";
 
 class Storage {
-  private data = new Map<string, StoreItem>();
+  private data = new Map<string, Obj>();
   private expires = new Set<string>();
 
-  put(key: string, item: StoreItem) {
+  put(key: string, item: Obj) {
     this.data.set(key, item);
     if(this.data.size >= Key_Limit) {
       this.evict();
@@ -22,7 +20,7 @@ class Storage {
     }
   }
  
-  get(key: string): StoreItem | undefined {
+  get(key: string): Obj | undefined {
     // implement lazy expiration
     const obj = this.data.get(key);
     if (!obj) return undefined;
