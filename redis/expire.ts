@@ -4,7 +4,7 @@ function expireSample() {
   const limit = 20;
 
   while (true) {
-    const keys = store.getRandomKeys(limit);
+    const keys = store.getExpiringRandomKeys(limit);
     if (keys.length === 0) {
       break;
     }
