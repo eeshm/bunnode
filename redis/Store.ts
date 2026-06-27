@@ -1,7 +1,7 @@
 
 import { Key_Limit } from "./constants";
 import { type Obj } from "./object";
-
+import {KeyspaceStats, UpdateDBStat} from "./stats";
 
 class Storage {
   private data = new Map<string, Obj>();
@@ -9,6 +9,7 @@ class Storage {
 
   put(key: string, item: Obj) {
     this.data.set(key, item);
+    UpdateDBStat(0, "keys", this.data.size); // Update keyspace stats for DB 0
     if(this.data.size >= Key_Limit) {
       this.evict();
     }
@@ -35,6 +36,7 @@ class Storage {
 
   delete(key: string) {
     this.expires.delete(key);
+    UpdateDBStat(0, "keys", this.data.size); // Update keyspace stats for DB 0
     return this.data.delete(key);
   }
 
@@ -59,8 +61,10 @@ class Storage {
     // evict first key (for simplicity, can be improved with LRU or other strategies)
     const firstKey = this.data.keys().next().value;
     if (firstKey) {
+
       this.data.delete(firstKey);
       this.expires.delete(firstKey);
+      UpdateDBStat(0, "keys", this.data.size); // Update keyspace stats for DB 0
     }
   }
 

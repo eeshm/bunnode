@@ -4,7 +4,7 @@ import { DUMPALLAOF } from "./aof";
 import { type Obj, OBJ_STRING, OBJ_ENCODING_INT } from "./object";
 import { deduceType } from "./typeHelper";
 import { assertType, assertEncoding } from "./typeencoding";
-
+import {KeyspaceStats, UpdateDBStat} from "./stats";
 
 type Cmd = {
   cmd: string;
@@ -101,7 +101,6 @@ function evalSet(cmd: Cmd) {
   });
   return encode("OK");
 }
-
 
 function evalGet(cmd: Cmd) {
   if (cmd.args.length !== 1) {
@@ -222,6 +221,12 @@ function evalIncr(cmd: Cmd) {
   return integer(newValue);
 }
 
+function evalClient(cmd: Cmd) {
+  return encode("OK");
+}
+function evalLatency(cmd: Cmd) {
+  return encode([], false);
+}
 // TODO: Make it async by forking a new process/thread
 function evalBGREWRITEAOF() {
   DUMPALLAOF();
@@ -234,8 +239,14 @@ function evalCommand() {
 }
 
 function evalInfo() {
-  // Minimal INFO payload so redis-cli can complete readiness checks.
-  return "$0\r\n\r\n";
+  var info = "";
+  info += "# Keyspace\r\n";
+
+  for (const [dbIndex, stats] of KeyspaceStats.entries()) {
+    const keys = stats.get("keys") || 0;
+    info += `db${dbIndex}:keys=${keys},expires=${0},avg_ttl=${0}\r\n`;
+  }
+  return encode(info, false);
 }
 
 export function evalAndRespone(cmds: Cmd[]): string {
@@ -268,6 +279,12 @@ export function evalAndRespone(cmds: Cmd[]): string {
         break;
       case "INFO":
         response += evalInfo();
+        break;
+      case "CLIENT":
+        response += evalClient(cmd);
+        break;
+      case "LATENCY":
+        response += evalLatency(cmd);
         break;
       case "COMMAND":
         response += evalCommand();
