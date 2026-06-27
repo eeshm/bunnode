@@ -190,10 +190,7 @@ function evalIncr(cmd: Cmd) {
   let obj = store.get(key);
 
   if (!obj) {
-    obj = {
-      typeEncoding: (OBJ_STRING << 4) | OBJ_ENCODING_INT,
-      value: 0
-    };
+    obj = { typeEncoding: (OBJ_STRING << 4) | OBJ_ENCODING_INT, value: 0 };
   } else {
     try {
       assertType(obj.typeEncoding, OBJ_STRING << 4);
